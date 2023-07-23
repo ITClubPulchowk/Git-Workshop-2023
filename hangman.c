@@ -3,16 +3,12 @@
 #include <stdio.h>
 #include <string.h>
 
-#define MAX_SCORE 5       // total wrong guesses allowed
+#define MAX_SCORE 5 // total wrong guesses allowed
 
 typedef struct {
-  char *mem;
-  size_t len;
-} Word;
-
-typedef struct {
-  Word current_word;
-  Word display_word;     //contains _ for unknown locations
+  char *current_word;
+  char *display_word;     //contains _ for unknown locations
+  size_t word_len;
   unsigned int score;
 
   char *guesses;       // past guesses
@@ -64,15 +60,13 @@ void str_lower(char *str){
 Game game_init() {
   Game game = { 0 };
   
-  game.current_word.mem = "programming";
-  game.current_word.len = strlen(game.current_word.mem);
-  
-  game.display_word.len = game.current_word.len;
-  game.display_word.mem = (char*)malloc(game.display_word.len);
-  for(int i = 0; i < game.display_word.len; ++i)
-    game.display_word.mem[i] = '_';
+  game.current_word = "programming";
+  game.word_len = strlen(game.current_word);
+  game.display_word = (char*)malloc(game.word_len);
+  for(int i = 0; i < game.word_len; ++i)
+    game.display_word[i] = '_';
 
-  game.guesses = (char*)calloc(game.current_word.len + MAX_SCORE, sizeof(char));
+  game.guesses = (char*)calloc(game.word_len + MAX_SCORE, sizeof(char));
   game.score = MAX_SCORE;
   game.guesses_made = 0;
 
@@ -87,10 +81,10 @@ GameState game_update(Game *game, char in) {
   game->guesses[game->guesses_made++] = in;
   
   int match = 0;
-  for(int i = 0; i < game->current_word.len; ++i) {
-    if(game->current_word.mem[i] == char_lower(in)){
+  for(int i = 0; i < game->word_len; ++i) {
+    if(game->current_word[i] == char_lower(in)){
       match = 1;
-      game->display_word.mem[i] = char_lower(in);
+      game->display_word[i] = char_lower(in);
     }
   }
 
@@ -100,7 +94,7 @@ GameState game_update(Game *game, char in) {
     return GAME_RUNNING;
   }
 
-  if(strcmp(game->current_word.mem, game->display_word.mem) == 0) return GAME_WON;
+  if(strcmp(game->current_word, game->display_word) == 0) return GAME_WON;
   return GAME_RUNNING;
 }
 
@@ -125,13 +119,13 @@ int main() {
 
   while(state == GAME_RUNNING) {
     clear_console();
-    printf("%s \t Score: %u\n", game.display_word.mem, game.score);
+    printf("%s \t Score: %u\n", game.display_word, game.score);
     char in = get_input();
     state = game_update(&game, in);
   }
 
   clear_console();
-  if(state == GAME_OVER) printf("You lost. The word was %s\n", game.current_word.mem);
+  if(state == GAME_OVER) printf("You lost. The word was %s\n", game.current_word);
   else printf("You won!! Score: %u\n", game.score);
   
   return 0;
