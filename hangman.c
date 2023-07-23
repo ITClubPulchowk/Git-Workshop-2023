@@ -1,9 +1,12 @@
 #include <assert.h>
+#include <stddef.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <time.h>
 
 #define MAX_SCORE 5 // total wrong guesses allowed
+#define WORD_COUNT 1022
 
 typedef struct {
   char *current_word;
@@ -13,6 +16,7 @@ typedef struct {
 
   char *guesses;       // past guesses
   unsigned int guesses_made;
+  FILE *word_file;
 } Game;
 
 typedef enum {
@@ -57,10 +61,31 @@ void str_lower(char *str){
     str[i] = char_lower(str[i]);
 }
 
-Game game_init() {
+void read_random_word(FILE *f, char **dst) {
+  unsigned int index = (unsigned int)(((float)rand()) * (WORD_COUNT) / RAND_MAX);
+  unsigned int count = 0;
+
+  char ch;
+  while (count < index) {
+    ch = fgetc(f);
+    if(ch == ',') count++;
+  }
+  ch = fgetc(f);
+
+  size_t word_len = 1;
+  while ((ch = fgetc(f)) != ',') word_len++;
+
+  if(*dst) free(*dst);
+  *dst = (char*)calloc(word_len, sizeof(char));
+  fseek(f, -word_len, SEEK_CUR);
+  fread(*dst, sizeof(char), word_len - 1, f);
+}
+
+Game game_init(FILE *word_file) {
   Game game = { 0 };
   
-  game.current_word = "programming";
+  game.word_file = word_file;
+  read_random_word(game.word_file, &game.current_word);
   game.word_len = strlen(game.current_word);
   game.display_word = (char*)malloc(game.word_len);
   for(int i = 0; i < game.word_len; ++i)
@@ -114,7 +139,18 @@ char get_input() {
 }
 
 int main() {
-  Game game = game_init();
+  srand(time(0));
+  FILE *file = fopen("words.txt", "r");
+  if(!file) {
+    printf("Cannot find word file.\n");
+    return 1;
+  }
+
+  char *word = 0;
+  read_random_word(file, &word);
+  printf("%s\n", word);
+
+  Game game = game_init(file);
   GameState state = GAME_RUNNING;
 
   while(state == GAME_RUNNING) {
@@ -127,6 +163,6 @@ int main() {
   clear_console();
   if(state == GAME_OVER) printf("You lost. The word was %s\n", game.current_word);
   else printf("You won!! Score: %u\n", game.score);
-  
+
   return 0;
 }
